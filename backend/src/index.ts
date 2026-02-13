@@ -1,6 +1,6 @@
 import express from 'express';
 import dotenv from 'dotenv';
-// Load environment variables BEFORE imports that might use them (like cloudinary config)
+
 dotenv.config();
 
 import cors from 'cors';

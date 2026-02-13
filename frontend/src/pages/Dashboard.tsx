@@ -17,6 +17,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useDebounce } from '../hooks/useDebounce';
+import { Progress } from "@/components/ui/progress";
 
 interface Video {
     _id: string;
@@ -46,6 +47,8 @@ const Dashboard = () => {
     const [videoToDelete, setVideoToDelete] = useState<string | null>(null);
     const [showUpdateModal, setShowUpdateModal] = useState(false);
 
+    const [processingState, setProcessingState] = useState<{ [key: string]: { progress: number, message: string } }>({});
+
     useEffect(() => {
         fetchVideos();
 
@@ -55,12 +58,25 @@ const Dashboard = () => {
             setVideos(prevVideos => prevVideos.map(video =>
                 video._id === data.videoId ? { ...video, sensitivityStatus: data.status } : video
             ));
+            // clear processing state when done
+            setProcessingState(prev => {
+                const newState = { ...prev };
+                delete newState[data.videoId];
+                return newState;
+            });
+        });
+
+        socket.on('videoProgress', (data: { videoId: string, progress: number, message: string }) => {
+            setProcessingState(prev => ({
+                ...prev,
+                [data.videoId]: { progress: data.progress, message: data.message }
+            }));
         });
 
         return () => {
             socket.disconnect();
         }
-    }, []);
+    }, [auth?.token]); // Added dependency
 
     const fetchVideos = async () => {
         try {
@@ -211,6 +227,15 @@ const Dashboard = () => {
                                     </div>
                                 )}
 
+                                {video.sensitivityStatus === 'pending' && (
+                                    <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-300 z-30">
+                                        <Loader2 size={24} className="animate-spin text-zinc-400 mb-3" />
+                                        <p className="text-zinc-200 text-sm font-medium mb-1">Processing</p>
+                                        <p className="text-zinc-500 text-xs mb-3">{processingState[video._id]?.message || 'Initializing...'}</p>
+                                        <Progress value={processingState[video._id]?.progress || 0} className="h-1.5 w-full bg-zinc-800" />
+                                    </div>
+                                )}
+
                                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
                                     {video.sensitivityStatus === 'safe' && (
                                         <div className="bg-black/20 backdrop-blur-sm rounded-full p-4 transform scale-75 opacity-0 group-hover:opacity-100 group-hover:scale-100 transition-all duration-300">
@@ -227,12 +252,6 @@ const Dashboard = () => {
                                         <div className="bg-red-600/90 text-white text-xs font-bold px-2 py-1 rounded-md shadow-lg flex items-center gap-1 backdrop-blur-sm border border-red-500/50">
                                             <ShieldAlert size={12} fill="currentColor" />
                                             FLAGGED
-                                        </div>
-                                    )}
-                                    {video.sensitivityStatus === 'pending' && (
-                                        <div className="bg-yellow-500/90 text-black text-xs font-bold px-2 py-1 rounded-md shadow-lg flex items-center gap-1 backdrop-blur-sm">
-                                            <Loader2 size={12} className="animate-spin" />
-                                            PROCESSING
                                         </div>
                                     )}
                                 </div>

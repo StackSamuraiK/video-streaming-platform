@@ -18,6 +18,7 @@ if (!fs.existsSync(tempDir)) {
 
 export const processVideo = async (videoId: string) => {
     console.log(`Starting analysis for video ${videoId}...`);
+    io.emit('videoProgress', { videoId, progress: 5, message: 'Initializing analysis...' });
 
     if (!API_KEY || API_KEY === 'your_gemini_api_key_here') {
         console.warn('Skipping analysis: GEMINI_API_KEY is missing or invalid.');
@@ -29,9 +30,11 @@ export const processVideo = async (videoId: string) => {
         if (!video) throw new Error('Video not found');
 
         const tempFilePath = path.join(tempDir, `${videoId}.mp4`);
+        io.emit('videoProgress', { videoId, progress: 10, message: 'Downloading video for analysis...' });
         await downloadFile(video.filepath, tempFilePath);
 
         console.log('Uploading to Gemini...');
+        io.emit('videoProgress', { videoId, progress: 30, message: 'Uploading to AI...' });
         const uploadResult = await fileManager.uploadFile(tempFilePath, {
             mimeType: 'video/mp4',
             displayName: video.title,
@@ -39,8 +42,11 @@ export const processVideo = async (videoId: string) => {
         const fileUri = uploadResult.file.uri;
         let file = await fileManager.getFile(uploadResult.file.name);
 
+        let progress = 30;
         while (file.state === FileState.PROCESSING) {
             console.log('Waiting for video processing...');
+            progress = Math.min(progress + 5, 80); // Increment up to 80%
+            io.emit('videoProgress', { videoId, progress, message: 'AI is processing video...' });
             await new Promise((resolve) => setTimeout(resolve, 5000));
             file = await fileManager.getFile(uploadResult.file.name);
         }
@@ -50,6 +56,7 @@ export const processVideo = async (videoId: string) => {
         }
 
         console.log('Analyzing content...');
+        io.emit('videoProgress', { videoId, progress: 85, message: 'Analyzing safety...' });
         const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
         const prompt = `
@@ -79,6 +86,7 @@ export const processVideo = async (videoId: string) => {
 
         const responseText = result.response.text();
         console.log('Gemini Analysis Result:', responseText);
+        io.emit('videoProgress', { videoId, progress: 95, message: 'Finalizing classification...' });
 
         let status: 'safe' | 'flagged' = 'safe';
         try {
@@ -97,6 +105,9 @@ export const processVideo = async (videoId: string) => {
             status: video.sensitivityStatus
         });
 
+        // Emit 100% progress
+        io.emit('videoProgress', { videoId, progress: 100, message: 'Analysis complete' });
+
         // 7. Cleanup
         await fileManager.deleteFile(uploadResult.file.name);
         if (fs.existsSync(tempFilePath)) {
@@ -107,6 +118,7 @@ export const processVideo = async (videoId: string) => {
 
     } catch (error) {
         console.error(`Error processing video ${videoId}:`, error);
+        io.emit('videoProgress', { videoId, progress: 0, message: 'Processing failed' });
     }
 };
 

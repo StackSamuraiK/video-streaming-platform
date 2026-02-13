@@ -8,11 +8,9 @@ import { io } from '../index';
 
 const API_KEY = process.env.GEMINI_API_KEY;
 
-// Initialize Gemini
 const genAI = new GoogleGenerativeAI(API_KEY || '');
 const fileManager = new GoogleAIFileManager(API_KEY || '');
 
-// Ensure temp directory exists
 const tempDir = path.join(__dirname, '../../temp');
 if (!fs.existsSync(tempDir)) {
     fs.mkdirSync(tempDir, { recursive: true });
@@ -30,11 +28,9 @@ export const processVideo = async (videoId: string) => {
         const video = await Video.findById(videoId);
         if (!video) throw new Error('Video not found');
 
-        // 1. Download Video to Temp File
         const tempFilePath = path.join(tempDir, `${videoId}.mp4`);
         await downloadFile(video.filepath, tempFilePath);
 
-        // 2. Upload to Gemini
         console.log('Uploading to Gemini...');
         const uploadResult = await fileManager.uploadFile(tempFilePath, {
             mimeType: 'video/mp4',
@@ -43,10 +39,9 @@ export const processVideo = async (videoId: string) => {
         const fileUri = uploadResult.file.uri;
         let file = await fileManager.getFile(uploadResult.file.name);
 
-        // 3. Wait for Processing
         while (file.state === FileState.PROCESSING) {
             console.log('Waiting for video processing...');
-            await new Promise((resolve) => setTimeout(resolve, 5000)); // Poll every 5s
+            await new Promise((resolve) => setTimeout(resolve, 5000));
             file = await fileManager.getFile(uploadResult.file.name);
         }
 
@@ -54,9 +49,7 @@ export const processVideo = async (videoId: string) => {
             throw new Error('Video processing failed by Gemini.');
         }
 
-        // 4. Analyze with Gemini 2.5 Flash
         console.log('Analyzing content...');
-        // The user specified "gemini-2.5-flash". If it fails, fallback might be needed, but sticking to request.
         const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
         const prompt = `
@@ -87,23 +80,18 @@ export const processVideo = async (videoId: string) => {
         const responseText = result.response.text();
         console.log('Gemini Analysis Result:', responseText);
 
-        // Parse Result
         let status: 'safe' | 'flagged' = 'safe';
         try {
-            // Clean markdown usage if present (```json ... ```)
             const jsonStr = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
             const analysis = JSON.parse(jsonStr);
             status = analysis.status === 'flagged' ? 'flagged' : 'safe';
         } catch (e) {
             console.error('Failed to parse JSON response, defaulting to safe/manual review needed.');
-            // Fallback logic could go here
         }
 
-        // 5. Update Database
         video.sensitivityStatus = status;
         await video.save();
 
-        // 6. Real-time Update
         io.emit('videoStatusUpdate', {
             videoId: video._id,
             status: video.sensitivityStatus
@@ -122,7 +110,7 @@ export const processVideo = async (videoId: string) => {
     }
 };
 
-// Helper: Download File
+// Helper funtion to download
 const downloadFile = (url: string, dest: string): Promise<void> => {
     return new Promise((resolve, reject) => {
         const file = fs.createWriteStream(dest);

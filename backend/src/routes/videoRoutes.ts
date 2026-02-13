@@ -6,10 +6,8 @@ import { authenticate } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
-// Multer Storage
 import { upload } from '../middleware/uploadMiddleware';
 
-// Routes
 router.post('/upload', authenticate, upload.fields([{ name: 'video', maxCount: 1 }, { name: 'thumbnail', maxCount: 1 }]), uploadVideo);
 router.get('/', authenticate, getVideos);
 router.get('/:id/stream', streamVideo);

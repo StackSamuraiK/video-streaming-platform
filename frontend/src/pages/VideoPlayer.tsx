@@ -23,7 +23,6 @@ const VideoPlayer = () => {
     useEffect(() => {
         const fetchVideo = async () => {
             try {
-                // Fetch list to find specific video metadata (naive but works for now as we don't have single video endpoint)
                 const res = await axios.get(`${BACKEND_URL}/videos`, {
                     headers: { Authorization: `Bearer ${auth?.token}` }
                 });

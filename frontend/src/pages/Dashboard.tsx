@@ -1,13 +1,11 @@
 import { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
-import { Play, Trash2, Edit2, X, MoreVertical, ShieldAlert, ShieldCheck, Loader2 } from 'lucide-react';
+import { Play, Trash2, Edit2, X, MoreVertical, ShieldAlert, ShieldCheck, Loader2, Search } from 'lucide-react';
 import io from 'socket.io-client';
 import { AuthContext } from '../context/AuthContext';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { BACKEND_URL } from '../config';
-
-// Shadcn & UI Imports
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,6 +16,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useDebounce } from '../hooks/useDebounce';
 
 interface Video {
     _id: string;
@@ -37,12 +36,12 @@ const Dashboard = () => {
     const [loading, setLoading] = useState(true);
     const auth = useContext(AuthContext);
 
-    // Edit State
+    const [searchQuery, setSearchQuery] = useState('');
+    const debouncedQuery = useDebounce(searchQuery, 300);
+
     const [editingVideo, setEditingVideo] = useState<Video | null>(null);
     const [editTitle, setEditTitle] = useState('');
     const [editDescription, setEditDescription] = useState('');
-
-    // Modal State
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [videoToDelete, setVideoToDelete] = useState<string | null>(null);
     const [showUpdateModal, setShowUpdateModal] = useState(false);
@@ -155,6 +154,10 @@ const Dashboard = () => {
         return date.toLocaleDateString();
     };
 
+    const filteredVideos = videos.filter(video =>
+        video.title.toLowerCase().includes(debouncedQuery.toLowerCase())
+    );
+
     if (loading) return (
         <div className="flex h-[50vh] items-center justify-center text-zinc-400">
             <Loader2 className="animate-spin mr-2" /> Loading videos...
@@ -163,11 +166,25 @@ const Dashboard = () => {
 
     return (
         <div className="space-y-8">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <h1 className="text-3xl font-bold tracking-tight text-zinc-100">All Videos</h1>
+                <div className="relative w-full sm:w-72">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                    <Input
+                        placeholder="Search videos..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-9 bg-zinc-900 border-zinc-800 text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-zinc-700"
+                    />
+                </div>
             </div>
 
-            {videos.length === 0 ? (
+            {filteredVideos.length === 0 && searchQuery ? (
+                <div className="flex flex-col items-center justify-center py-20 text-zinc-500">
+                    <p className="text-lg font-medium">No videos found</p>
+                    <p className="text-sm">Try exploring other search terms</p>
+                </div>
+            ) : filteredVideos.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-zinc-500 bg-zinc-900/50 rounded-xl border border-zinc-800 border-dashed">
                     <p className="text-lg font-medium mb-2">No videos uploaded yet</p>
                     <p className="text-sm mb-6">Upload a video to get started</p>
@@ -179,9 +196,8 @@ const Dashboard = () => {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {videos.map((video) => (
+                    {filteredVideos.map((video) => (
                         <div key={video._id} className="group flex flex-col gap-3 rounded-xl p-2 -m-2 transition-all duration-300 hover:bg-zinc-800/40 hover:scale-[1.02] hover:shadow-xl hover:ring-1 hover:ring-zinc-700/50">
-                            {/* Thumbnail Container */}
                             <div className="relative aspect-video rounded-xl overflow-hidden bg-zinc-900 ring-1 ring-zinc-800">
                                 {video.thumbnailPath ? (
                                     <img
@@ -195,7 +211,6 @@ const Dashboard = () => {
                                     </div>
                                 )}
 
-                                {/* Overlay: Duration (Mocked for now) or Status */}
                                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
                                     {video.sensitivityStatus === 'safe' && (
                                         <div className="bg-black/20 backdrop-blur-sm rounded-full p-4 transform scale-75 opacity-0 group-hover:opacity-100 group-hover:scale-100 transition-all duration-300">
@@ -204,12 +219,9 @@ const Dashboard = () => {
                                     )}
                                 </div>
 
-                                {/* Link to Video */}
                                 {video.sensitivityStatus !== 'flagged' && (
                                     <Link to={`/video/${video._id}`} className="absolute inset-0 z-10" />
                                 )}
-
-                                {/* Status Badges - HIGH VISIBILITY */}
                                 <div className="absolute top-2 right-2 z-20 flex flex-col gap-2">
                                     {video.sensitivityStatus === 'flagged' && (
                                         <div className="bg-red-600/90 text-white text-xs font-bold px-2 py-1 rounded-md shadow-lg flex items-center gap-1 backdrop-blur-sm border border-red-500/50">
@@ -234,21 +246,16 @@ const Dashboard = () => {
                                 )}
                             </div>
 
-                            {/* Video Info */}
                             <div className="flex gap-3 items-start px-0.5">
-                                {/* User Avatar (Placeholder) */}
                                 <div className="flex-shrink-0 w-9 h-9 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 font-semibold text-xs border border-zinc-700 select-none">
                                     {video.owner?.username?.substring(0, 2).toUpperCase() || '??'}
                                 </div>
 
                                 <div className="flex-1 min-w-0 flex flex-col gap-1">
-                                    {/* Title & Menu Row */}
                                     <div className="flex justify-between items-start gap-2">
                                         <h3 className={`text-base font-semibold leading-tight line-clamp-2 ${video.sensitivityStatus === 'flagged' ? 'text-zinc-500' : 'text-zinc-100 group-hover:text-white'}`}>
                                             {video.title}
                                         </h3>
-
-                                        {/* Actions Menu */}
                                         {canManage(video) && (
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
@@ -268,7 +275,6 @@ const Dashboard = () => {
                                         )}
                                     </div>
 
-                                    {/* Metadata */}
                                     <div className="text-sm text-zinc-400 flex flex-col">
                                         <span className="hover:text-zinc-300 transition-colors">{video.owner?.username || 'Unknown User'}</span>
                                         <div className="flex items-center">
@@ -282,7 +288,6 @@ const Dashboard = () => {
                 </div>
             )}
 
-            {/* Edit Modal - Styled */}
             {editingVideo && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
                     <Card className="w-full max-w-lg bg-zinc-950 border-zinc-800 shadow-xl ring-1 ring-zinc-800">
@@ -325,7 +330,6 @@ const Dashboard = () => {
                 </div>
             )}
 
-            {/* Confirmation Modals */}
             <ConfirmationModal
                 isOpen={showDeleteModal}
                 onClose={() => setShowDeleteModal(false)}

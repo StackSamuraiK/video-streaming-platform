@@ -1,6 +1,4 @@
 import { Request, Response } from 'express';
-import path from 'path';
-import fs from 'fs';
 import Video from '../models/Video';
 import { processVideo } from '../services/processingService';
 
@@ -8,7 +6,6 @@ interface AuthRequest extends Request {
     user?: any;
 }
 
-// Upload Video
 export const uploadVideo = async (req: AuthRequest, res: Response): Promise<void> => {
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
     if (!files || !files['video']) {
@@ -20,14 +17,9 @@ export const uploadVideo = async (req: AuthRequest, res: Response): Promise<void
     const { title, description } = req.body;
     let thumbnailPath = '';
 
-    // Check for custom thumbnail
     if (files['thumbnail']) {
         thumbnailPath = files['thumbnail'][0].path;
     } else {
-        // Use Cloudinary's auto-generated thumbnail URL
-        // Cloudinary stores video at videoFile.path (secure_url)
-        // To get a jpg thumbnail, we replace the extension
-        // Note: usage of 'path' here refers to the Cloudinary URL
         thumbnailPath = videoFile.path.replace(/\.[^/.]+$/, ".jpg");
     }
 
@@ -35,16 +27,15 @@ export const uploadVideo = async (req: AuthRequest, res: Response): Promise<void
         const newVideo = new Video({
             title,
             description,
-            filename: videoFile.filename, // Cloudinary Public ID
-            filepath: videoFile.path, // Cloudinary URL
+            filename: videoFile.filename,
+            filepath: videoFile.path,
             thumbnailPath,
             owner: req.user.id,
-            sensitivityStatus: 'pending', // Default to pending
+            sensitivityStatus: 'pending',
         });
 
         await newVideo.save();
 
-        // Trigger async processing
         processVideo(newVideo._id.toString());
 
         res.status(201).json(newVideo);
@@ -54,13 +45,11 @@ export const uploadVideo = async (req: AuthRequest, res: Response): Promise<void
     }
 };
 
-// Get All Videos (User Isolated)
 export const getVideos = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         const { sensitivity } = req.query;
         let query: any = {};
 
-        // Regular users can only see their own videos
         if (req.user.role !== 'admin' && req.user.role !== 'editor') {
             query.owner = req.user.id;
         }
@@ -76,7 +65,6 @@ export const getVideos = async (req: AuthRequest, res: Response): Promise<void> 
     }
 };
 
-// Stream Video (Redirect to Cloudinary)
 export const streamVideo = async (req: Request, res: Response): Promise<void> => {
     try {
         const video = await Video.findById(req.params.id);
@@ -85,14 +73,12 @@ export const streamVideo = async (req: Request, res: Response): Promise<void> =>
             return;
         }
 
-        // Redirect to Cloudinary URL
         res.redirect(video.filepath);
     } catch (error) {
         res.status(500).json({ message: 'Error streaming video' });
     }
 };
 
-// Delete Video
 export const deleteVideo = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         const video = await Video.findById(req.params.id);
@@ -101,21 +87,13 @@ export const deleteVideo = async (req: AuthRequest, res: Response): Promise<void
             return;
         }
 
-        // Check permissions: Admin OR Editor ONLY
         if (req.user.role !== 'admin' && req.user.role !== 'editor') {
             res.status(403).json({ message: 'Only admins and editors can perform this action' });
             return;
         }
 
-        // Delete from Cloudinary
-        // filename stores the public_id
         const cloudinary = require('../config/cloudinary').default;
         await cloudinary.uploader.destroy(video.filename, { resource_type: 'video' });
-
-        // Also delete thumbnail? If it's stored in Cloudinary with a public_id, yes.
-        // But our current logic set thumbnailPath to a URL derived from video, so it might not have a separate ID if auto-generated.
-        // If custom uploaded, we should ideally store its public_id too.
-        // For now, focusing on video deletion.
 
         await Video.findByIdAndDelete(req.params.id);
         res.json({ message: 'Video removed' });
@@ -125,7 +103,6 @@ export const deleteVideo = async (req: AuthRequest, res: Response): Promise<void
     }
 };
 
-// Update Video
 export const updateVideo = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         const { title, description } = req.body;
@@ -136,7 +113,6 @@ export const updateVideo = async (req: AuthRequest, res: Response): Promise<void
             return;
         }
 
-        // Check permissions: Owner OR Admin OR Editor
         if (video.owner.toString() !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'editor') {
             res.status(403).json({ message: 'Not authorized to update this video' });
             return;

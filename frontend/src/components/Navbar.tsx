@@ -64,10 +64,9 @@ const Navbar = () => {
                                     </DropdownMenuLabel>
                                     <DropdownMenuSeparator className="bg-zinc-800" />
 
-                                    {/* Role Display Section */}
                                     <div className="px-2 py-2 flex items-center justify-between">
                                         <span className="text-xs text-zinc-400 font-medium">Role</span>
-                                        <span className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${auth.user.role === 'admin' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                                        <span className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${auth.user.role === 'admin' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
                                             auth.user.role === 'editor' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
                                                 'bg-zinc-800 text-zinc-300 border-zinc-700'
                                             }`}>

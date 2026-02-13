@@ -4,8 +4,8 @@ import { IUser } from './User';
 export interface IVideo extends Document {
     title: string;
     description: string;
-    filename: string; // The stored filename
-    filepath: string; // Full path or relative path
+    filename: string;
+    filepath: string;
     owner: IUser['_id'];
     sensitivityStatus: 'pending' | 'safe' | 'flagged';
     thumbnailPath?: string;

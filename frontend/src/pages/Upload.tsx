@@ -2,10 +2,8 @@ import { useState, useContext, type FormEvent } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Upload as UploadIcon, CheckCircle, AlertCircle, FileVideo, X, Image as ImageIcon } from 'lucide-react';
+import { Upload as UploadIcon, CheckCircle, AlertCircle, FileVideo, X, Image as ImageIcon, ArrowLeft } from 'lucide-react';
 import { BACKEND_URL } from '../config';
-
-// Shadcn Components
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,13 +15,10 @@ const Upload = () => {
     const [thumbnail, setThumbnail] = useState<File | null>(null);
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
-
-    // Upload State
     const [uploading, setUploading] = useState(false);
     const [currentFileIndex, setCurrentFileIndex] = useState(0);
     const [progress, setProgress] = useState(0);
     const [error, setError] = useState('');
-
     const auth = useContext(AuthContext);
     const navigate = useNavigate();
 
@@ -68,15 +63,13 @@ const Upload = () => {
                 const formData = new FormData();
                 formData.append('video', file);
 
-                // Only allow custom thumbnail if single file
                 if (files.length === 1 && thumbnail) {
                     formData.append('thumbnail', thumbnail);
                 }
 
-                // Use custom title for single file, or filename for batch
                 const videoTitle = files.length === 1 && title ? title : file.name.replace(/\.[^/.]+$/, "");
                 formData.append('title', videoTitle);
-                formData.append('description', description); // Same description for all
+                formData.append('description', description);
 
                 await axios.post(`${BACKEND_URL}/videos/upload`, formData, {
                     headers: {
@@ -90,7 +83,6 @@ const Upload = () => {
                 });
             }
 
-            // All done
             setTimeout(() => navigate('/'), 1000);
 
         } catch (err: any) {
@@ -107,12 +99,18 @@ const Upload = () => {
         <div className="max-w-3xl mx-auto mt-10 px-4">
             <Card className="bg-zinc-950 border-zinc-800 text-zinc-50 shadow-xl">
                 <CardHeader>
-                    <CardTitle className="text-2xl flex items-center gap-3">
-                        <div className="p-2 bg-zinc-900 rounded-lg border border-zinc-800">
-                            <UploadIcon className="text-zinc-100" />
-                        </div>
-                        Upload Video{isBatch ? 's' : ''}
-                    </CardTitle>
+                    <div className="flex items-center justify-between">
+                        <CardTitle className="text-2xl flex items-center gap-3">
+                            <div className="p-2 bg-zinc-900 rounded-lg border border-zinc-800">
+                                <UploadIcon className="text-zinc-100" />
+                            </div>
+                            Upload Video{isBatch ? 's' : ''}
+                        </CardTitle>
+                        <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="text-zinc-400 hover:text-zinc-100">
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Back to Dashboard
+                        </Button>
+                    </div>
                     <CardDescription className="text-zinc-400">
                         Upload and share your videos with the world.
                     </CardDescription>
@@ -156,7 +154,6 @@ const Upload = () => {
                         </div>
                     ) : (
                         <form onSubmit={handleSubmit} className="space-y-8">
-                            {/* File Drop Zone */}
                             <div className="relative group">
                                 <div className="border-2 border-dashed border-zinc-800 rounded-xl p-10 text-center hover:border-zinc-500 hover:bg-zinc-900/50 transition-all cursor-pointer relative">
                                     <input
@@ -181,7 +178,6 @@ const Upload = () => {
                                     </div>
                                 </div>
 
-                                {/* File List */}
                                 {files.length > 0 && (
                                     <div className="mt-4 space-y-2">
                                         <div className="text-sm font-medium text-zinc-400 px-1">Selected Files ({files.length})</div>
@@ -210,7 +206,6 @@ const Upload = () => {
                             </div>
 
                             <div className="grid gap-6">
-                                {/* Thumbnail - Single File Only */}
                                 {!isBatch && files.length > 0 && (
                                     <div className="space-y-2">
                                         <Label className="text-zinc-200">Thumbnail (Optional)</Label>
@@ -230,7 +225,6 @@ const Upload = () => {
                                     </div>
                                 )}
 
-                                {/* Metadata Fields */}
                                 <div className="space-y-4">
                                     {!isBatch && (
                                         <div className="space-y-2">

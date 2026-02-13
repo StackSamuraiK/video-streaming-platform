@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { Video, LogOut, Upload as UploadIcon, User, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { Video, LogOut, Upload as UploadIcon, User, ShieldCheck } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
@@ -23,7 +23,7 @@ const Navbar = () => {
 
     const getRoleIcon = (role: string) => {
         switch (role) {
-            case 'admin': return <ShieldAlert size={12} className="text-red-400" />;
+            case 'admin': return <ShieldCheck size={12} className="text-green-400" />;
             case 'editor': return <ShieldCheck size={12} className="text-blue-400" />;
             default: return <User size={12} className="text-zinc-400" />;
         }

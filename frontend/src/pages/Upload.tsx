@@ -234,7 +234,7 @@ const Upload = () => {
                                                 value={title}
                                                 onChange={(e) => setTitle(e.target.value)}
                                                 placeholder={files.length === 1 ? files[0].name.replace(/\.[^/.]+$/, "") : "Video Title"}
-                                                className="bg-zinc-900 border-zinc-800 text-zinc-700 focus-visible:ring-zinc-700"
+                                                className="bg-zinc-900 border-zinc-800 text-zinc-50 placeholder:text-zinc-700 focus-visible:ring-zinc-700"
                                                 required={!isBatch}
                                                 disabled={files.length === 0}
                                             />
@@ -250,7 +250,7 @@ const Upload = () => {
                                             value={description}
                                             onChange={(e) => setDescription(e.target.value)}
                                             placeholder="Tell viewers about your video..."
-                                            className="bg-zinc-900 border-zinc-800 text-zinc-700 min-h-[120px] focus-visible:ring-zinc-700 resize-none"
+                                            className="bg-zinc-900 border-zinc-800 text-zinc-50 placeholder:text-zinc-700 min-h-[120px] focus-visible:ring-zinc-700 resize-none"
                                             disabled={files.length === 0}
                                         />
                                     </div>

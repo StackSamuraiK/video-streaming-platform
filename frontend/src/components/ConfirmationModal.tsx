@@ -25,28 +25,28 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 animate-fade-in">
-            <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md shadow-2xl relative border border-gray-700">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+            <div className="bg-zinc-950 rounded-xl p-6 w-full max-w-md shadow-xl ring-1 ring-zinc-800 relative">
                 <button
                     onClick={onClose}
-                    className="absolute top-4 right-4 text-gray-400 hover:text-white transition"
+                    className="absolute top-4 right-4 text-zinc-500 hover:text-zinc-100 transition p-1 hover:bg-zinc-800 rounded-full"
                 >
-                    <X size={24} />
+                    <X size={18} />
                 </button>
 
                 <div className="flex items-center gap-3 mb-4">
-                    {isDanger && <AlertTriangle className="text-red-500" size={28} />}
-                    <h2 className="text-xl font-bold text-white">{title}</h2>
+                    {isDanger && <div className="p-2 bg-red-500/10 rounded-full"><AlertTriangle className="text-red-500" size={20} /></div>}
+                    <h2 className="text-lg font-semibold text-zinc-100">{title}</h2>
                 </div>
 
-                <p className="text-gray-300 mb-8 leading-relaxed">
+                <p className="text-zinc-400 mb-8 leading-relaxed text-sm">
                     {message}
                 </p>
 
                 <div className="flex justify-end gap-3">
                     <button
                         onClick={onClose}
-                        className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition font-medium"
+                        className="px-4 py-2 bg-transparent hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 rounded-md transition text-sm font-medium"
                     >
                         {cancelText}
                     </button>
@@ -55,9 +55,9 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                             onConfirm();
                             onClose();
                         }}
-                        className={`px-4 py-2 rounded font-bold transition flex items-center gap-2 ${isDanger
-                                ? 'bg-red-600 hover:bg-red-700 text-white'
-                                : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                        className={`px-4 py-2 rounded-md font-semibold text-sm transition shadow-sm ${isDanger
+                            ? 'bg-red-600 hover:bg-red-700 text-white'
+                            : 'bg-zinc-100 hover:bg-white text-zinc-950'
                             }`}
                     >
                         {confirmText}

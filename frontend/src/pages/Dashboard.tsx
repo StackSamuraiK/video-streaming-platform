@@ -1,11 +1,23 @@
 import { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
-import { Play, Clock, AlertTriangle, CheckCircle, Trash2, Edit2, X } from 'lucide-react';
+import { Play, Trash2, Edit2, X, MoreVertical, ShieldAlert, ShieldCheck, Loader2 } from 'lucide-react';
 import io from 'socket.io-client';
 import { AuthContext } from '../context/AuthContext';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { BACKEND_URL } from '../config';
+
+// Shadcn & UI Imports
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Card } from "@/components/ui/card";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Video {
     _id: string;
@@ -83,7 +95,6 @@ const Dashboard = () => {
             setVideoToDelete(null);
         } catch (error: any) {
             console.error("Error deleting video", error);
-            // Ideally replace with Toast
             alert(error.response?.data?.message || 'Failed to delete video');
         }
     };
@@ -126,149 +137,191 @@ const Dashboard = () => {
 
     const canManage = (_video: Video) => {
         if (!auth?.user) return false;
-        // Strict Mode: Only Admins and Editors can manage videos
         return auth.user.role === 'admin' || auth.user.role === 'editor';
     };
 
-    const getStatusIcon = (status: string) => {
-        switch (status) {
-            case 'safe': return <CheckCircle size={16} className="text-green-400" />;
-            case 'flagged': return <AlertTriangle size={16} className="text-red-400" />;
-            default: return <Clock size={16} className="text-yellow-400 animate-pulse" />;
-        }
+    const formatTimeAgo = (dateString: string) => {
+        const date = new Date(dateString);
+        const now = new Date();
+        const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+        if (seconds < 60) return 'Just now';
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `${minutes}m ago`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours}h ago`;
+        const days = Math.floor(hours / 24);
+        if (days < 7) return `${days}d ago`;
+        return date.toLocaleDateString();
     };
 
-    if (loading) return <div className="text-center mt-20">Loading videos...</div>;
+    if (loading) return (
+        <div className="flex h-[50vh] items-center justify-center text-zinc-400">
+            <Loader2 className="animate-spin mr-2" /> Loading videos...
+        </div>
+    );
 
     return (
-        <div>
-            <h1 className="text-3xl font-bold mb-8">Video Library</h1>
+        <div className="space-y-8">
+            <div className="flex items-center justify-between">
+                <h1 className="text-3xl font-bold tracking-tight text-zinc-100">Recommended</h1>
+            </div>
 
             {videos.length === 0 ? (
-                <div className="text-center text-gray-400 mt-20">
-                    <p>No videos uploaded yet.</p>
-                    <Link to="/upload" className="text-indigo-400 hover:underline mt-2 inline-block">Upload your first video</Link>
+                <div className="flex flex-col items-center justify-center py-20 text-zinc-500 bg-zinc-900/50 rounded-xl border border-zinc-800 border-dashed">
+                    <p className="text-lg font-medium mb-2">No videos uploaded yet</p>
+                    <p className="text-sm mb-6">Upload a video to get started</p>
+                    <Link to="/upload">
+                        <Button variant="outline" className="border-zinc-700 hover:bg-zinc-800 text-zinc-200">
+                            Upload Video
+                        </Button>
+                    </Link>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {videos.map((video) => (
-                        <div key={video._id} className="bg-gray-800 rounded-lg overflow-hidden shadow-lg group relative">
-                            {/* Media Container */}
-                            <div className="relative bg-gray-900 h-48 flex items-center justify-center overflow-hidden">
-                                {video.sensitivityStatus === 'safe' ? (
-                                    <Link to={`/video/${video._id}`} className="absolute inset-0 flex items-center justify-center group-hover:bg-black/40 transition z-10">
-                                        <Play size={48} className="text-white drop-shadow-lg opacity-0 group-hover:opacity-100 transition duration-300" fill="currentColor" />
-                                    </Link>
-                                ) : (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-10">
-                                        <span className="text-gray-300 font-medium">
-                                            {video.sensitivityStatus === 'flagged' ? 'Content Flagged' : 'Processing...'}
-                                        </span>
-                                    </div>
-                                )}
+                        <div key={video._id} className="group flex flex-col gap-3 rounded-xl p-2 -m-2 transition-all duration-300 hover:bg-zinc-800/40 hover:scale-[1.02] hover:shadow-xl hover:ring-1 hover:ring-zinc-700/50">
+                            {/* Thumbnail Container */}
+                            <div className="relative aspect-video rounded-xl overflow-hidden bg-zinc-900 ring-1 ring-zinc-800">
                                 {video.thumbnailPath ? (
                                     <img
-                                        src={
-                                            video.thumbnailPath.startsWith('http')
-                                                ? video.thumbnailPath
-                                                : `${BACKEND_URL.replace('/api', '')}/${video.thumbnailPath}`
-                                        }
+                                        src={video.thumbnailPath.startsWith('http') ? video.thumbnailPath : `${BACKEND_URL.replace('/api', '')}/${video.thumbnailPath}`}
                                         alt={video.title}
-                                        className="w-full h-full object-cover"
+                                        className={`w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 ${video.sensitivityStatus === 'flagged' ? 'opacity-50 grayscale' : ''}`}
                                     />
                                 ) : (
-                                    <div className="text-gray-600">No Thumbnail</div>
+                                    <div className="w-full h-full flex items-center justify-center text-zinc-700 bg-zinc-900">
+                                        <Play size={40} className="opacity-20" />
+                                    </div>
+                                )}
+
+                                {/* Overlay: Duration (Mocked for now) or Status */}
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
+                                    {video.sensitivityStatus === 'safe' && (
+                                        <div className="bg-black/20 backdrop-blur-sm rounded-full p-4 transform scale-75 opacity-0 group-hover:opacity-100 group-hover:scale-100 transition-all duration-300">
+                                            <Play className="text-white drop-shadow-lg fill-white" size={32} />
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Link to Video */}
+                                {video.sensitivityStatus !== 'flagged' && (
+                                    <Link to={`/video/${video._id}`} className="absolute inset-0 z-10" />
+                                )}
+
+                                {/* Status Badges - HIGH VISIBILITY */}
+                                <div className="absolute top-2 right-2 z-20 flex flex-col gap-2">
+                                    {video.sensitivityStatus === 'flagged' && (
+                                        <div className="bg-red-600/90 text-white text-xs font-bold px-2 py-1 rounded-md shadow-lg flex items-center gap-1 backdrop-blur-sm border border-red-500/50">
+                                            <ShieldAlert size={12} fill="currentColor" />
+                                            FLAGGED
+                                        </div>
+                                    )}
+                                    {video.sensitivityStatus === 'pending' && (
+                                        <div className="bg-yellow-500/90 text-black text-xs font-bold px-2 py-1 rounded-md shadow-lg flex items-center gap-1 backdrop-blur-sm">
+                                            <Loader2 size={12} className="animate-spin" />
+                                            PROCESSING
+                                        </div>
+                                    )}
+                                </div>
+                                {video.sensitivityStatus === 'safe' && (
+                                    <div className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                        <div className="bg-green-500/90 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm flex items-center gap-1 backdrop-blur-sm">
+                                            <ShieldCheck size={10} fill="currentColor" />
+                                            SAFE
+                                        </div>
+                                    </div>
                                 )}
                             </div>
 
-                            <div className="p-4">
-                                <div className="flex justify-between items-start mb-2">
-                                    <h3 className="font-bold text-lg truncate flex-1 mr-2">{video.title}</h3>
-                                    <div className="flex items-center gap-1 bg-gray-900/50 px-2 py-1 rounded text-xs whitespace-nowrap">
-                                        {getStatusIcon(video.sensitivityStatus)}
-                                        <span className="capitalize">{video.sensitivityStatus}</span>
-                                    </div>
+                            {/* Video Info */}
+                            <div className="flex gap-3 items-start px-0.5">
+                                {/* User Avatar (Placeholder) */}
+                                <div className="flex-shrink-0 w-9 h-9 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 font-semibold text-xs border border-zinc-700 select-none">
+                                    {video.owner?.username?.substring(0, 2).toUpperCase() || '??'}
                                 </div>
 
-                                <p className="text-gray-400 text-sm mb-4 line-clamp-2">{video.description}</p>
+                                <div className="flex-1 min-w-0 flex flex-col gap-1">
+                                    {/* Title & Menu Row */}
+                                    <div className="flex justify-between items-start gap-2">
+                                        <h3 className={`text-base font-semibold leading-tight line-clamp-2 ${video.sensitivityStatus === 'flagged' ? 'text-zinc-500' : 'text-zinc-100 group-hover:text-white'}`}>
+                                            {video.title}
+                                        </h3>
 
-                                <div className="flex justify-between items-center text-xs text-gray-500 mt-auto">
-                                    <span>By {video.owner?.username || 'Unknown User'}</span>
-                                    <span>{new Date(video.createdAt).toLocaleDateString()}</span>
-                                </div>
-
-                                {/* Management Actions */}
-                                {canManage(video) && (
-                                    <div className="mt-4 pt-4 border-t border-gray-700 flex justify-end gap-3">
-                                        <button
-                                            onClick={() => openEditModal(video)}
-                                            className="p-2 text-blue-400 hover:bg-blue-500/10 rounded transition"
-                                            title="Edit"
-                                        >
-                                            <Edit2 size={18} />
-                                        </button>
-                                        <button
-                                            onClick={() => confirmDelete(video._id)}
-                                            className="p-2 text-red-400 hover:bg-red-500/10 rounded transition"
-                                            title="Delete"
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
+                                        {/* Actions Menu */}
+                                        {canManage(video) && (
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <button className="text-zinc-400 hover:text-zinc-200 p-0.5 rounded-full hover:bg-zinc-800 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">
+                                                        <MoreVertical size={16} />
+                                                    </button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800 text-zinc-200">
+                                                    <DropdownMenuItem onClick={() => openEditModal(video)} className="hover:bg-zinc-800 cursor-pointer focus:bg-zinc-800 focus:text-zinc-100">
+                                                        <Edit2 size={14} className="mr-2" /> Edit
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => confirmDelete(video._id)} className="text-red-400 hover:bg-zinc-800 hover:text-red-300 cursor-pointer focus:bg-zinc-800 focus:text-red-300">
+                                                        <Trash2 size={14} className="mr-2" /> Delete
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        )}
                                     </div>
-                                )}
+
+                                    {/* Metadata */}
+                                    <div className="text-sm text-zinc-400 flex flex-col">
+                                        <span className="hover:text-zinc-300 transition-colors">{video.owner?.username || 'Unknown User'}</span>
+                                        <div className="flex items-center">
+                                            <span>{formatTimeAgo(video.createdAt)}</span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     ))}
                 </div>
             )}
 
-            {/* Edit Modal */}
+            {/* Edit Modal - Styled */}
             {editingVideo && (
-                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-                    <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md shadow-2xl relative">
-                        <button
-                            onClick={closeEditModal}
-                            className="absolute top-4 right-4 text-gray-400 hover:text-white"
-                        >
-                            <X size={24} />
-                        </button>
-                        <h2 className="text-2xl font-bold mb-6">Edit Video</h2>
-                        <form onSubmit={initiateUpdate} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Title</label>
-                                <input
-                                    type="text"
-                                    value={editTitle}
-                                    onChange={(e) => setEditTitle(e.target.value)}
-                                    className="w-full bg-gray-700 rounded p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                    required
-                                />
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+                    <Card className="w-full max-w-lg bg-zinc-950 border-zinc-800 shadow-xl ring-1 ring-zinc-800">
+                        <div className="p-6">
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-xl font-semibold text-zinc-100 block">Edit Video</h2>
+                                <Button variant="ghost" size="icon" onClick={closeEditModal} className="h-8 w-8 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 rounded-full">
+                                    <X size={18} />
+                                </Button>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Description</label>
-                                <textarea
-                                    value={editDescription}
-                                    onChange={(e) => setEditDescription(e.target.value)}
-                                    className="w-full bg-gray-700 rounded p-2 h-24 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                />
-                            </div>
-                            <div className="flex justify-end gap-3 mt-6">
-                                <button
-                                    type="button"
-                                    onClick={closeEditModal}
-                                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded transition"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded font-bold transition"
-                                >
-                                    Save Changes
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+                            <form onSubmit={initiateUpdate} className="space-y-5">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-zinc-300">Title</label>
+                                    <Input
+                                        value={editTitle}
+                                        onChange={(e) => setEditTitle(e.target.value)}
+                                        className="bg-zinc-900 border-zinc-800 focus-visible:ring-zinc-700 text-zinc-100 placeholder:text-zinc-500"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-zinc-300">Description</label>
+                                    <Textarea
+                                        value={editDescription}
+                                        onChange={(e) => setEditDescription(e.target.value)}
+                                        className="bg-zinc-900 border-zinc-800 focus-visible:ring-zinc-700 text-zinc-100 placeholder:text-zinc-500 min-h-[120px] resize-none"
+                                    />
+                                </div>
+                                <div className="flex justify-end gap-3 pt-4">
+                                    <Button type="button" variant="ghost" onClick={closeEditModal} className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800">
+                                        Cancel
+                                    </Button>
+                                    <Button type="submit" className="bg-zinc-100 text-zinc-950 hover:bg-white font-semibold">
+                                        Save Changes
+                                    </Button>
+                                </div>
+                            </form>
+                        </div>
+                    </Card>
                 </div>
             )}
 

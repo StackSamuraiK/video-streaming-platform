@@ -146,6 +146,7 @@ export const updateVideo = async (req: AuthRequest, res: Response): Promise<void
         video.description = description || video.description;
 
         await video.save();
+        await video.populate('owner', 'username');
         res.json(video);
     } catch (error) {
         res.status(500).json({ message: 'Server error' });

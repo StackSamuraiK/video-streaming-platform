@@ -2,6 +2,7 @@ import { useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { Video, LogOut, Upload as UploadIcon, User } from 'lucide-react';
+import { Button } from "@/components/ui/button";
 
 const Navbar = () => {
     const auth = useContext(AuthContext);
@@ -13,37 +14,49 @@ const Navbar = () => {
     };
 
     return (
-        <nav className="bg-gray-800 p-4 shadow-lg">
-            <div className="container mx-auto flex justify-between items-center">
-                <Link to="/" className="text-xl font-bold flex items-center gap-2 text-indigo-400">
-                    <Video size={24} />
-                    StreamPlatform
+        <nav className="sticky top-0 z-50 w-full border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md supports-[backdrop-filter]:bg-zinc-950/60">
+            <div className="container mx-auto px-4 h-16 flex justify-between items-center">
+                <Link to="/" className="text-xl font-bold flex items-center gap-2 text-zinc-100 hover:text-white transition-colors">
+                    <Video size={24} className="text-zinc-100" />
+                    StreamTube
                 </Link>
 
                 <div className="flex items-center gap-6">
                     {auth?.user ? (
                         <>
-                            <Link to="/upload" className="flex items-center gap-2 hover:text-indigo-400 transition">
-                                <UploadIcon size={20} />
-                                Upload
+                            <Link to="/upload">
+                                <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 gap-2">
+                                    <UploadIcon size={18} />
+                                    Upload
+                                </Button>
                             </Link>
                             <div className="flex items-center gap-4">
-                                <span className="flex items-center gap-2 text-gray-300">
-                                    <User size={18} />
+                                <span className="flex items-center gap-2 text-sm text-zinc-400">
+                                    <User size={16} />
                                     {auth.user.username}
                                 </span>
-                                <button
+                                <Button
                                     onClick={handleLogout}
-                                    className="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-sm transition"
+                                    variant="destructive"
+                                    size="sm"
+                                    className="h-8 px-2"
                                 >
-                                    <LogOut size={18} />
-                                </button>
+                                    <LogOut size={16} />
+                                </Button>
                             </div>
                         </>
                     ) : (
                         <div className="flex gap-4">
-                            <Link to="/login" className="hover:text-indigo-400 transition">Login</Link>
-                            <Link to="/register" className="bg-indigo-600 hover:bg-indigo-700 px-4 py-1 rounded transition">Register</Link>
+                            <Link to="/login">
+                                <Button variant="ghost" className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800">
+                                    Login
+                                </Button>
+                            </Link>
+                            <Link to="/register">
+                                <Button className="bg-zinc-100 text-zinc-900 hover:bg-white">
+                                    Register
+                                </Button>
+                            </Link>
                         </div>
                     )}
                 </div>

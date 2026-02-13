@@ -1,1 +1,1 @@
-export const BACKEND_URL = "http://localhost:5001/api";
+export const BACKEND_URL = "https://video-streaming-platform-rces.onrender.com/api";

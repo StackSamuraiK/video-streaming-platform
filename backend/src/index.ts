@@ -13,7 +13,7 @@ import videoRoutes from './routes/videoRoutes';
 connectDB();
 
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 5001;
 
 app.use(cors());
 app.use(express.json());
